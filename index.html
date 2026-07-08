@@ -118,7 +118,7 @@
     <tbody id="rows"></tbody>
   </table>
 
-  <footer>Refreshes on page load</footer>
+  <footer>Refreshes every 5 seconds</footer>
 </main>
 
 <script>
@@ -162,6 +162,7 @@
   }
 
   loadStats();
+  setInterval(loadStats, 5000);
 </script>
 </body>
 </html>
