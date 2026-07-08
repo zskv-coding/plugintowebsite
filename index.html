@@ -13,9 +13,7 @@
     --muted: #8a909b;
     --accent: #5eead4;
   }
-
   * { box-sizing: border-box; }
-
   body {
     margin: 0;
     padding: 48px 20px;
@@ -25,24 +23,20 @@
     display: flex;
     justify-content: center;
   }
-
   main {
     width: 100%;
     max-width: 640px;
   }
-
   h1 {
     font-size: 1.4rem;
     font-weight: 600;
     margin: 0 0 4px;
   }
-
   p.subtitle {
     color: var(--muted);
     font-size: 0.9rem;
     margin: 0 0 28px;
   }
-
   table {
     width: 100%;
     border-collapse: collapse;
@@ -51,13 +45,11 @@
     border-radius: 8px;
     overflow: hidden;
   }
-
   th, td {
     padding: 10px 14px;
     text-align: left;
     font-size: 0.92rem;
   }
-
   th {
     color: var(--muted);
     font-weight: 500;
@@ -66,31 +58,33 @@
     letter-spacing: 0.04em;
     border-bottom: 1px solid var(--border);
   }
-
   td {
     border-bottom: 1px solid var(--border);
     font-variant-numeric: tabular-nums;
   }
-
   tr:last-child td { border-bottom: none; }
-
   td.num, th.num { text-align: right; }
-
   td.rank {
     color: var(--muted);
     width: 32px;
   }
-
   td.name {
     font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-
+  td.name .head {
+    border-radius: 4px;
+    display: block;
+    background: var(--border);
+    flex-shrink: 0;
+  }
   #status, #empty {
     color: var(--muted);
     font-size: 0.9rem;
     padding: 20px 0;
   }
-
   footer {
     margin-top: 20px;
     color: var(--muted);
@@ -103,7 +97,6 @@
 <main>
   <h1>Player Stats</h1>
   <p class="subtitle">Kills, deaths, and zombies slain: updated live from the server.</p>
-
   <div id="status">Loading stats…</div>
   <table id="table" style="display:none;">
     <thead>
@@ -117,50 +110,53 @@
     </thead>
     <tbody id="rows"></tbody>
   </table>
-
   <footer>Refreshes every 5 seconds</footer>
 </main>
-
 <script>
   async function loadStats() {
     const status = document.getElementById('status');
     const table = document.getElementById('table');
     const rowsEl = document.getElementById('rows');
-
     try {
       const res = await fetch('/api/stats');
       if (!res.ok) throw new Error('Request failed');
       const data = await res.json();
       const players = data.players || [];
-
       if (players.length === 0) {
         status.textContent = 'No stats recorded yet.';
         return;
       }
-
       rowsEl.innerHTML = players.map((p, i) => `
         <tr>
           <td class="rank">${i + 1}</td>
-          <td class="name">${escapeHtml(p.username)}</td>
+          <td class="name">
+            <img
+              class="head"
+              src="https://mc-heads.net/avatar/${encodeURIComponent(p.username)}/24"
+              alt=""
+              width="24"
+              height="24"
+              loading="lazy"
+              onerror="this.style.visibility='hidden'"
+            >
+            <span>${escapeHtml(p.username)}</span>
+          </td>
           <td class="num">${p.kills}</td>
           <td class="num">${p.deaths}</td>
           <td class="num">${p.zombies_killed}</td>
         </tr>
       `).join('');
-
       status.style.display = 'none';
       table.style.display = 'table';
     } catch (err) {
       status.textContent = 'Could not load stats right now.';
     }
   }
-
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
   }
-
   loadStats();
   setInterval(loadStats, 5000);
 </script>
