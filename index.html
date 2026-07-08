@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Server Stats</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161a21;
+    --border: #262b34;
+    --text: #e7e9ec;
+    --muted: #8a909b;
+    --accent: #5eead4;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 48px 20px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  main {
+    width: 100%;
+    max-width: 640px;
+  }
+
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+  }
+
+  p.subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin: 0 0 28px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 0.92rem;
+  }
+
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  td.num, th.num { text-align: right; }
+
+  td.rank {
+    color: var(--muted);
+    width: 32px;
+  }
+
+  td.name {
+    font-weight: 500;
+  }
+
+  #status, #empty {
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 20px 0;
+  }
+
+  footer {
+    margin-top: 20px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Player Stats</h1>
+  <p class="subtitle">Kills, deaths, and zombies slain: updated live from the server.</p>
+
+  <div id="status">Loading stats…</div>
+  <table id="table" style="display:none;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Player</th>
+        <th class="num">Kills</th>
+        <th class="num">Deaths</th>
+        <th class="num">Zombies</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <footer>Refreshes on page load</footer>
+</main>
+
+<script>
+  async function loadStats() {
+    const status = document.getElementById('status');
+    const table = document.getElementById('table');
+    const rowsEl = document.getElementById('rows');
+
+    try {
+      const res = await fetch('/api/stats');
+      if (!res.ok) throw new Error('Request failed');
+      const data = await res.json();
+      const players = data.players || [];
+
+      if (players.length === 0) {
+        status.textContent = 'No stats recorded yet.';
+        return;
+      }
+
+      rowsEl.innerHTML = players.map((p, i) => `
+        <tr>
+          <td class="rank">${i + 1}</td>
+          <td class="name">${escapeHtml(p.username)}</td>
+          <td class="num">${p.kills}</td>
+          <td class="num">${p.deaths}</td>
+          <td class="num">${p.zombies_killed}</td>
+        </tr>
+      `).join('');
+
+      status.style.display = 'none';
+      table.style.display = 'table';
+    } catch (err) {
+      status.textContent = 'Could not load stats right now.';
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  loadStats();
+</script>
+</body>
+</html>
