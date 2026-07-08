@@ -3,7 +3,7 @@ const mysql = require('mysql2/promise');
 module.exports = async (req, res) => {
   // Allow the page to call this from the browser
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate');
+  res.setHeader('Cache-Control', 'no-store');
 
   let connection;
   try {
