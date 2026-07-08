@@ -97,6 +97,27 @@
     font-size: 0.78rem;
     text-align: center;
   }
+
+  #feed li {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  #feed li .desc { color: var(--text); }
+  #feed li .desc b { color: var(--accent); font-weight: 600; }
+  #feed li .time {
+    color: var(--muted);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -117,6 +138,11 @@
     </thead>
     <tbody id="rows"></tbody>
   </table>
+
+  <h1 style="margin-top:40px;">Recent Activity</h1>
+  <p class="subtitle">Live kill/death feed.</p>
+  <div id="feed-status">Loading activity...</div>
+  <ul id="feed" style="list-style:none; margin:0; padding:0; display:none;"></ul>
 
   <footer>Refreshes on page load</footer>
 </main>
@@ -141,7 +167,18 @@
       rowsEl.innerHTML = players.map((p, i) => `
         <tr>
           <td class="rank">${i + 1}</td>
-          <td class="name">${escapeHtml(p.username)}</td>
+          <td class="name">
+  <img
+    class="head"
+    src="https://mc-heads.net/avatar/${encodeURIComponent(p.username)}/24"
+    alt=""
+    width="24"
+    height="24"
+    loading="lazy"
+    onerror="this.style.visibility='hidden'"
+  >
+  <span>${escapeHtml(p.username)}</span>
+</td>
           <td class="num">${p.kills}</td>
           <td class="num">${p.deaths}</td>
           <td class="num">${p.zombies_killed}</td>
@@ -154,6 +191,61 @@
       status.textContent = 'Could not load stats right now.';
     }
   }
+
+  function describeEvent(e) {
+    const name = `<b>${escapeHtml(e.username)}</b>`;
+    switch (e.event_type) {
+      case 'KILL':
+        return `${name} killed <b>${escapeHtml(e.target_name)}</b>`;
+      case 'DEATH':
+        if (e.target_name) {
+          return `${name} was killed by <b>${escapeHtml(e.target_name)}</b>`;
+        }
+        return `${name} died: ${escapeHtml(e.detail || 'Unknown causes')}`;
+      case 'ZOMBIE_KILL':
+        return `${name} killed a zombie`;
+      default:
+        return `${name} — ${escapeHtml(e.event_type)}`;
+    }
+  }
+
+  function timeAgo(isoString) {
+    const seconds = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+  }
+
+  async function loadHistory() {
+    const status = document.getElementById('feed-status');
+    const feed = document.getElementById('feed');
+    try {
+      const res = await fetch('/api/history?limit=50');
+      if (!res.ok) throw new Error('Request failed');
+      const data = await res.json();
+      const events = data.events || [];
+      if (events.length === 0) {
+        status.textContent = 'No activity yet.';
+        return;
+      }
+      feed.innerHTML = events.map(e => `
+        <li>
+          <span class="desc">${describeEvent(e)}</span>
+          <span class="time">${timeAgo(e.created_at)}</span>
+        </li>
+      `).join('');
+      status.style.display = 'none';
+      feed.style.display = 'block';
+    } catch (err) {
+      status.textContent = 'Could not load activity right now.';
+    }
+  }
+
+  loadHistory();
+  setInterval(loadHistory, 5000);
 
   function escapeHtml(str) {
     const div = document.createElement('div');
