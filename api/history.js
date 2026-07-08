@@ -4,7 +4,7 @@ module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 's-maxage=10, stale-while-revalidate');
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
 
     let connection;
     try {
@@ -19,16 +19,15 @@ module.exports = async (req, res) => {
 
         const [rows] = await connection.execute(
             `SELECT username, event_type, target_name, detail, created_at
-       FROM player_events
-       ORDER BY created_at DESC, id DESC
-       LIMIT ?`,
-            [limit]
+             FROM player_events
+             ORDER BY created_at DESC, id DESC
+                 LIMIT ${limit}`
         );
 
         res.status(200).json({ events: rows });
     } catch (err) {
         console.error('Database error:', err);
-        res.status(500).json({ error: 'Failed to load history' });
+        res.status(500).json({ error: 'Failed to load history', detail: err.message });
     } finally {
         if (connection) await connection.end();
     }
